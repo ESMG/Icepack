@@ -775,7 +775,9 @@
                               fpond,       fresh,      &
                               fsalt,       fhocn,      &
                               faero_ocn,   fiso_ocn,   &
-                              flux_bio,    Tf, limit_aice_in)
+                              flux_bio,    Tf,         &
+                              limit_aice_in,           &
+                              call_rebin_in)
 
       integer (kind=int_kind), intent(in) :: &
          ncat  , & ! number of thickness categories
@@ -845,6 +847,8 @@
       logical (kind=log_kind), intent(in), optional ::   &
          limit_aice_in      ! if false, allow aice to be out of bounds
                             ! may want to allow this for unit tests
+      logical (kind=log_kind), intent(in), optional ::   &
+         call_rebin_in      ! if false, do not call rebin
 
       ! local variables
 
@@ -870,6 +874,9 @@
       logical (kind=log_kind) ::   &
          limit_aice         ! if true, check for aice out of bounds
 
+      logical (kind=log_kind) ::   &
+         call_rebin         ! if true, call rebin
+
       character(len=*),parameter :: subname='(cleanup_itd)'
 
       !-----------------------------------------------------------------
@@ -880,6 +887,12 @@
          limit_aice = limit_aice_in
       else
          limit_aice = .true.
+      endif
+
+      if (present(call_rebin_in)) then
+         call_rebin = call_rebin_in
+      else
+         call_rebin = .true.
       endif
 
       dfpond = c0
@@ -915,7 +928,7 @@
       ! Identify grid cells with ice.
       !-----------------------------------------------------------------
 
-      if (aice > puny) then
+      if (call_rebin .and. aice > puny) then
 
       !-----------------------------------------------------------------
       ! Make sure ice in each category is within its thickness bounds.

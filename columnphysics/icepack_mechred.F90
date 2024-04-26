@@ -1743,7 +1743,9 @@
                                     araftn,       vraftn,        &
                                     aice,         fsalt,         &
                                     first_ice,    fzsal,         &
-                                    flux_bio,     closing, Tf )
+                                    flux_bio,     closing, Tf,   &
+                                    call_cleanup_in,             &
+                                    call_rebin_in)
 
       real (kind=dbl_kind), intent(in) :: &
          dt           ! time step
@@ -1823,6 +1825,10 @@
       logical (kind=log_kind), dimension(:), intent(inout) :: &
          first_ice    ! true until ice forms
 
+      logical (kind=log_kind), intent(in), optional ::   &
+         call_cleanup_in, & ! if false, do not call cleanup_itd
+         call_rebin_in      ! if false, do not call rebin in cleanup_itd
+
 !autodocument_end
 
       ! local variables
@@ -1832,6 +1838,10 @@
 
       logical (kind=log_kind), save :: &
          first_call = .true.   ! first call flag
+
+      logical (kind=log_kind) ::   &
+         call_cleanup, &    ! if true, call cleanup_itd
+         call_rebin         ! if true, call rebin in cleanup_itd
 
       character(len=*),parameter :: subname='(icepack_step_ridge)'
 
@@ -1849,6 +1859,16 @@
          endif
       endif
 
+      if (present(call_cleanup_in)) then
+         call_cleanup = call_cleanup_in
+      else
+         call_cleanup = .true.
+      endif
+      if (present(call_rebin_in)) then
+         call_rebin = call_rebin_in
+      else
+         call_rebin = .true.
+      endif
 
       !-----------------------------------------------------------------
       ! Identify ice-ocean cells.
@@ -1890,8 +1910,9 @@
       !  categories with very small areas.
       !-----------------------------------------------------------------
 
-      dtt = dt * ndtd  ! for proper averaging over thermo timestep
-      call cleanup_itd (dtt,                  ntrcr,            &
+      if (call_cleanup) then
+        dtt = dt * ndtd  ! for proper averaging over thermo timestep
+        call cleanup_itd (dtt,                  ntrcr,            &
                         nilyr,                nslyr,            &
                         ncat,                 hin_max,          &
                         aicen,                trcrn,            &
@@ -1907,8 +1928,10 @@
                         fpond,                fresh,            &
                         fsalt,                fhocn,            &
                         faero_ocn,            fiso_ocn,         &
-                        flux_bio,             Tf)
-      if (icepack_warnings_aborted(subname)) return
+                        flux_bio,             Tf,               &
+                        call_rebin_in=call_rebin)
+        if (icepack_warnings_aborted(subname)) return
+      endif
 
       first_call = .false.
 
