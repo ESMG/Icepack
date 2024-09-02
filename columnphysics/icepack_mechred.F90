@@ -59,7 +59,8 @@
 
       private
       public :: icepack_ice_strength, &
-                icepack_step_ridge
+                icepack_step_ridge, &
+                ridge_ice
 
       real (kind=dbl_kind), parameter :: &
          exp_argmax = 100.0_dbl_kind, &    ! maximum argument of exponential for underflow
