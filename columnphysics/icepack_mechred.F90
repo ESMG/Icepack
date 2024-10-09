@@ -60,7 +60,8 @@
 
       private
       public :: icepack_ice_strength, &
-                icepack_step_ridge
+                icepack_step_ridge, &
+                ridge_ice
 
       real (kind=dbl_kind), parameter :: &
          exp_argmax = 100.0_dbl_kind, &    ! maximum argument of exponential for underflow
@@ -99,7 +100,7 @@
                             krdg_partic, krdg_redist,&
                             mu_rdg,      tr_brine,   &
                             dardg1dt,    dardg2dt,   &
-                            dvirdgdt,    opening,    &
+                            dvirdgdt,                &
                             fpond,       flux_bio,   &
                             fresh,       fhocn,      &
                             faero_ocn,   fiso_ocn,   &
@@ -108,7 +109,7 @@
                             dardg1ndt,   dardg2ndt,  &
                             dvirdgndt,   Tf,         &
                             araftn,      vraftn,     &
-                            closing )
+                            opening,     closing )
 
       integer (kind=int_kind), intent(in) :: &
          ndtd       ! number of dynamics subcycles
@@ -1742,7 +1743,8 @@
                                     first_ice,    fzsal,         &
                                     flux_bio,     closing,       &
                                     Tf,                          &
-                                    docleanup,    dorebin)
+                                    docleanup,    dorebin,       &
+                                    donoprep)
 
       real (kind=dbl_kind), intent(in) :: &
          dt           ! time step
@@ -1819,7 +1821,9 @@
 
      logical (kind=log_kind), intent(in), optional ::   &
          docleanup, & ! if false, do not call cleanup_itd (default true)
-         dorebin      ! if false, do not call rebin in cleanup_itd (default true)
+         dorebin, &   ! if false, do not call rebin in cleanup_itd (default true)
+         donoprep     ! if false, do not pass opening and closing to ridge_ice
+                      ! (default true)
 
 !autodocument_end
 
@@ -1830,7 +1834,8 @@
 
       logical (kind=log_kind) ::   &
          ldocleanup, &! if true, call cleanup_itd
-         ldorebin     ! if true, call rebin in cleanup_itd
+         ldorebin, &  ! if true, call rebin in cleanup_itd
+         ldonoprep    ! if true, call pass opening and closing to ridge_ice
 
       logical (kind=log_kind), save :: &
          first_call = .true.   ! first call flag
@@ -1863,6 +1868,12 @@
          ldorebin = .true.
       endif
 
+      if (present(donoprep)) then
+         ldonoprep = donoprep
+      else
+         ldonoprep = .true.
+      endif
+
       !-----------------------------------------------------------------
       ! Identify ice-ocean cells.
       ! Note:  We can not limit the loop here using aice>puny because
@@ -1870,30 +1881,56 @@
       !        it may be out of whack, which the ridging helps fix).-ECH
       !-----------------------------------------------------------------
 
-      call ridge_ice (dt,           ndtd,           &
-                      hin_max,                      &
-                      rdg_conv,     rdg_shear,      &
-                      aicen,                        &
-                      trcrn,                        &
-                      vicen,        vsnon,          &
-                      aice0,                        &
-                      trcr_depend,                  &
-                      trcr_base,                    &
-                      n_trcr_strata,                &
-                      nt_strata,                    &
-                      krdg_partic,  krdg_redist,    &
-                      mu_rdg,       tr_brine,       &
-                      dardg1dt,     dardg2dt,       &
-                      dvirdgdt,     opening,        &
-                      fpond,        flux_bio,       &
-                      fresh,        fhocn,          &
-                      faero_ocn,    fiso_ocn,       &
-                      aparticn,     krdgn,          &
-                      aredistn,     vredistn,       &
-                      dardg1ndt,    dardg2ndt,      &
-                      dvirdgndt,    Tf,             &
-                      araftn,       vraftn,         &
-                      closing )
+      if (ldonoprep) then
+        call ridge_ice (dt,           ndtd,           &
+                        hin_max,                      &
+                        rdg_conv,     rdg_shear,      &
+                        aicen,                        &
+                        trcrn,                        &
+                        vicen,        vsnon,          &
+                        aice0,                        &
+                        trcr_depend,                  &
+                        trcr_base,                    &
+                        n_trcr_strata,                &
+                        nt_strata,                    &
+                        krdg_partic,  krdg_redist,    &
+                        mu_rdg,       tr_brine,       &
+                        dardg1dt,     dardg2dt,       &
+                        dvirdgdt,                     &
+                        fpond,        flux_bio,       &
+                        fresh,        fhocn,          &
+                        faero_ocn,    fiso_ocn,       &
+                        aparticn,     krdgn,          &
+                        aredistn,     vredistn,       &
+                        dardg1ndt,    dardg2ndt,      &
+                        dvirdgndt,    Tf,             &
+                        araftn,       vraftn,         &
+                        opening,      closing )
+      else
+        call ridge_ice (dt,           ndtd,           &
+                        hin_max,                      &
+                        rdg_conv,     rdg_shear,      &
+                        aicen,                        &
+                        trcrn,                        &
+                        vicen,        vsnon,          &
+                        aice0,                        &
+                        trcr_depend,                  &
+                        trcr_base,                    &
+                        n_trcr_strata,                &
+                        nt_strata,                    &
+                        krdg_partic,  krdg_redist,    &
+                        mu_rdg,       tr_brine,       &
+                        dardg1dt,     dardg2dt,       &
+                        dvirdgdt,                     &
+                        fpond,        flux_bio,       &
+                        fresh,        fhocn,          &
+                        faero_ocn,    fiso_ocn,       &
+                        aparticn,     krdgn,          &
+                        aredistn,     vredistn,       &
+                        dardg1ndt,    dardg2ndt,      &
+                        dvirdgndt,    Tf,             &
+                        araftn,       vraftn)
+      endif
       if (icepack_warnings_aborted(subname)) return
 
       !-----------------------------------------------------------------
