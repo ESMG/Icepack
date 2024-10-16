@@ -60,8 +60,7 @@
 
       private
       public :: icepack_ice_strength, &
-                icepack_step_ridge, &
-                ridge_ice
+                icepack_step_ridge
 
       real (kind=dbl_kind), parameter :: &
          exp_argmax = 100.0_dbl_kind, &    ! maximum argument of exponential for underflow
@@ -1744,7 +1743,7 @@
                                     flux_bio,     closing,       &
                                     Tf,                          &
                                     docleanup,    dorebin,       &
-                                    donoprep)
+                                    doprep)
 
       real (kind=dbl_kind), intent(in) :: &
          dt           ! time step
@@ -1822,8 +1821,8 @@
      logical (kind=log_kind), intent(in), optional ::   &
          docleanup, & ! if false, do not call cleanup_itd (default true)
          dorebin, &   ! if false, do not call rebin in cleanup_itd (default true)
-         donoprep     ! if false, do not pass opening and closing to ridge_ice
-                      ! (default true)
+         doprep       ! if true, do not pass opening and closing to ridge_ice
+                      ! (default false)
 
 !autodocument_end
 
@@ -1835,7 +1834,7 @@
       logical (kind=log_kind) ::   &
          ldocleanup, &! if true, call cleanup_itd
          ldorebin, &  ! if true, call rebin in cleanup_itd
-         ldonoprep    ! if true, call pass opening and closing to ridge_ice
+         ldoprep    ! if true, call pass opening and closing to ridge_ice
 
       logical (kind=log_kind), save :: &
          first_call = .true.   ! first call flag
@@ -1868,10 +1867,10 @@
          ldorebin = .true.
       endif
 
-      if (present(donoprep)) then
-         ldonoprep = donoprep
+      if (present(doprep)) then
+         ldoprep = doprep
       else
-         ldonoprep = .true.
+         ldoprep = .false.
       endif
 
       !-----------------------------------------------------------------
@@ -1881,7 +1880,31 @@
       !        it may be out of whack, which the ridging helps fix).-ECH
       !-----------------------------------------------------------------
 
-      if (ldonoprep) then
+      if (ldoprep) then
+        call ridge_ice (dt,           ndtd,           &
+                        hin_max,                      &
+                        rdg_conv,     rdg_shear,      &
+                        aicen,                        &
+                        trcrn,                        &
+                        vicen,        vsnon,          &
+                        aice0,                        &
+                        trcr_depend,                  &
+                        trcr_base,                    &
+                        n_trcr_strata,                &
+                        nt_strata,                    &
+                        krdg_partic,  krdg_redist,    &
+                        mu_rdg,       tr_brine,       &
+                        dardg1dt,     dardg2dt,       &
+                        dvirdgdt,                     &
+                        fpond,        flux_bio,       &
+                        fresh,        fhocn,          &
+                        faero_ocn,    fiso_ocn,       &
+                        aparticn,     krdgn,          &
+                        aredistn,     vredistn,       &
+                        dardg1ndt,    dardg2ndt,      &
+                        dvirdgndt,    Tf,             &
+                        araftn,       vraftn)
+      else
         call ridge_ice (dt,           ndtd,           &
                         hin_max,                      &
                         rdg_conv,     rdg_shear,      &
@@ -1906,30 +1929,6 @@
                         dvirdgndt,    Tf,             &
                         araftn,       vraftn,         &
                         opening,      closing )
-      else
-        call ridge_ice (dt,           ndtd,           &
-                        hin_max,                      &
-                        rdg_conv,     rdg_shear,      &
-                        aicen,                        &
-                        trcrn,                        &
-                        vicen,        vsnon,          &
-                        aice0,                        &
-                        trcr_depend,                  &
-                        trcr_base,                    &
-                        n_trcr_strata,                &
-                        nt_strata,                    &
-                        krdg_partic,  krdg_redist,    &
-                        mu_rdg,       tr_brine,       &
-                        dardg1dt,     dardg2dt,       &
-                        dvirdgdt,                     &
-                        fpond,        flux_bio,       &
-                        fresh,        fhocn,          &
-                        faero_ocn,    fiso_ocn,       &
-                        aparticn,     krdgn,          &
-                        aredistn,     vredistn,       &
-                        dardg1ndt,    dardg2ndt,      &
-                        dvirdgndt,    Tf,             &
-                        araftn,       vraftn)
       endif
       if (icepack_warnings_aborted(subname)) return
 
